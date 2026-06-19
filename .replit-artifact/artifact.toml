@@ -1,0 +1,27 @@
+kind = "mobile"
+previewPath = "/"
+title = "AI Wellness Stone"
+version = "1.0.0"
+id = "artifacts/ai-wellness-stone"
+router = "expo-domain"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+ensurePreviewReachable = "/status"
+name = "expo"
+paths = [ "/" ]
+localPort = 18335
+
+[services.development]
+run = "pnpm --filter @workspace/ai-wellness-stone run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/ai-wellness-stone", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/ai-wellness-stone", "run", "serve" ]
+
+[services.env]
+PORT = "18335"
+BASE_PATH = "/"
