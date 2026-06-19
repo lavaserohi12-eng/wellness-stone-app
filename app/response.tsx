@@ -1,7 +1,8 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import React from 'react';
 import {
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -9,216 +10,143 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { PrimaryButton } from '@/src/components/PrimaryButton';
-import { AssistantResponse } from '@/src/types/wellness';
 import { useColors } from '@/hooks/useColors';
+import { useWellness } from '@/src/state/WellnessContext';
 
 export default function ResponseScreen() {
   const router = useRouter();
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { responseData } = useLocalSearchParams<{ responseData: string }>();
+  const { latestAssistantResponse } = useWellness();
 
-  const paddingTop =
-    Platform.OS === 'web' ? 67 : insets.top + 8;
-  const paddingBottom =
-    Platform.OS === 'web' ? 34 : insets.bottom + 16;
+  const paddingTop = Platform.OS === 'web' ? 67 : insets.top + 8;
+  const paddingBottom = Platform.OS === 'web' ? 34 : insets.bottom + 24;
 
-  let response: AssistantResponse | null = null;
-  if (responseData) {
-    try {
-      response = JSON.parse(responseData) as AssistantResponse;
-    } catch {
-      // malformed data — show error state
-    }
-  }
-
-  if (!response) {
+  if (!latestAssistantResponse) {
     return (
-      <View
-        style={[
-          styles.container,
-          { backgroundColor: colors.background, paddingTop },
-        ]}
-      >
-        <Text
-          style={[
-            styles.errorText,
-            { color: colors.destructive, fontFamily: 'Inter_400Regular' },
+      <View style={[styles.empty, { backgroundColor: colors.background, paddingTop }]}>
+        <Text style={[styles.emptyTitle, { color: colors.foreground, fontFamily: 'Inter_600SemiBold' }]}>
+          No response yet
+        </Text>
+        <Text style={[styles.emptySub, { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' }]}>
+          Complete a check-in to see your Stone's response here.
+        </Text>
+        <Pressable
+          onPress={() => router.replace('/')}
+          style={({ pressed }) => [
+            styles.btn,
+            { backgroundColor: colors.secondary, borderRadius: 14, opacity: pressed ? 0.75 : 1 },
           ]}
         >
-          No response data available.
-        </Text>
-        <PrimaryButton
-          label="Back Home"
-          onPress={() => router.replace('/')}
-          variant="secondary"
-        />
+          <Text style={[styles.btnText, { color: colors.secondaryForeground, fontFamily: 'Inter_600SemiBold' }]}>
+            Back Home
+          </Text>
+        </Pressable>
       </View>
     );
   }
 
+  const { responseText, deviceCommand, schemaVersion } = latestAssistantResponse;
+
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.background }}
-      contentContainerStyle={[
-        styles.scrollContent,
-        { paddingTop, paddingBottom },
-      ]}
+      contentContainerStyle={[styles.scroll, { paddingTop, paddingBottom }]}
       showsVerticalScrollIndicator={false}
     >
-      {/* Header */}
-      <Text
-        style={[
-          styles.title,
-          { color: colors.foreground, fontFamily: 'Inter_700Bold' },
-        ]}
-      >
+      <Text style={[styles.heading, { color: colors.foreground, fontFamily: 'Inter_700Bold' }]}>
         Your Response
       </Text>
 
       {/* Response text */}
-      <View
-        style={[
-          styles.responseCard,
-          { backgroundColor: colors.card, borderColor: colors.border },
-        ]}
-      >
-        <Text
-          style={[
-            styles.sectionLabel,
-            { color: colors.primary, fontFamily: 'Inter_600SemiBold' },
-          ]}
-        >
+      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Text style={[styles.cardLabel, { color: colors.primary, fontFamily: 'Inter_600SemiBold' }]}>
           Message
         </Text>
-        <Text
-          style={[
-            styles.responseText,
-            { color: colors.foreground, fontFamily: 'Inter_400Regular' },
-          ]}
-        >
-          {response.responseText}
+        <Text style={[styles.responseText, { color: colors.foreground, fontFamily: 'Inter_400Regular' }]}>
+          {responseText}
         </Text>
       </View>
 
       {/* Device command */}
-      <View
-        style={[
-          styles.commandCard,
-          { backgroundColor: colors.card, borderColor: colors.border },
-        ]}
-      >
-        <Text
-          style={[
-            styles.sectionLabel,
-            { color: colors.primary, fontFamily: 'Inter_600SemiBold' },
-          ]}
-        >
+      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Text style={[styles.cardLabel, { color: colors.primary, fontFamily: 'Inter_600SemiBold' }]}>
           Stone Command
         </Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.codeScroll}
-        >
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <Text
             style={[
               styles.code,
               {
                 color: colors.foreground,
                 backgroundColor: colors.muted,
-                fontFamily: Platform.select({
-                  ios: 'Menlo',
-                  android: 'monospace',
-                  default: 'monospace',
-                }),
+                fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
+                borderRadius: 10,
               },
             ]}
           >
-            {JSON.stringify(response.deviceCommand, null, 2)}
+            {JSON.stringify(deviceCommand, null, 2)}
           </Text>
         </ScrollView>
       </View>
 
-      {/* Schema version badge */}
-      <Text
-        style={[
-          styles.versionBadge,
-          { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' },
-        ]}
-      >
-        Schema v{response.schemaVersion}
+      <Text style={[styles.badge, { color: colors.mutedForeground, fontFamily: 'Inter_400Regular' }]}>
+        Schema v{schemaVersion}
       </Text>
 
-      {/* Back home */}
-      <View style={styles.footer}>
-        <PrimaryButton
-          label="Back Home"
+      {/* Actions */}
+      <View style={styles.actions}>
+        <Pressable
+          onPress={() => router.push('/check-in')}
+          style={({ pressed }) => [
+            styles.btn,
+            { backgroundColor: colors.primary, borderRadius: 14, opacity: pressed ? 0.82 : 1 },
+          ]}
+          testID="btn-new-check-in"
+        >
+          <Text style={[styles.btnText, { color: colors.primaryForeground, fontFamily: 'Inter_600SemiBold' }]}>
+            New Check-in
+          </Text>
+        </Pressable>
+
+        <Pressable
           onPress={() => router.replace('/')}
+          style={({ pressed }) => [
+            styles.btn,
+            { backgroundColor: colors.secondary, borderRadius: 14, opacity: pressed ? 0.75 : 1 },
+          ]}
           testID="btn-back-home"
-        />
+        >
+          <Text style={[styles.btnText, { color: colors.secondaryForeground, fontFamily: 'Inter_600SemiBold' }]}>
+            Back Home
+          </Text>
+        </Pressable>
       </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 24,
-    gap: 16,
-  },
-  scrollContent: {
-    paddingHorizontal: 24,
-    gap: 16,
-  },
-  errorText: {
-    fontSize: 15,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  title: {
-    fontSize: 24,
-    letterSpacing: -0.3,
-    marginBottom: 4,
-  },
-  responseCard: {
-    borderRadius: 14,
+  scroll: { paddingHorizontal: 20, gap: 16 },
+  empty: { flex: 1, paddingHorizontal: 24, gap: 14 },
+  emptyTitle: { fontSize: 22, letterSpacing: -0.3 },
+  emptySub: { fontSize: 15, lineHeight: 22 },
+  heading: { fontSize: 26, letterSpacing: -0.4 },
+  card: {
+    borderRadius: 16,
     borderWidth: 1,
     padding: 16,
     gap: 10,
   },
-  commandCard: {
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 16,
-    gap: 10,
-  },
-  sectionLabel: {
+  cardLabel: {
     fontSize: 11,
     textTransform: 'uppercase',
     letterSpacing: 1.2,
   },
-  responseText: {
-    fontSize: 17,
-    lineHeight: 26,
-  },
-  codeScroll: {
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  code: {
-    fontSize: 13,
-    lineHeight: 20,
-    padding: 12,
-    borderRadius: 8,
-  },
-  versionBadge: {
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  footer: {
-    marginTop: 8,
-  },
+  responseText: { fontSize: 18, lineHeight: 28 },
+  code: { fontSize: 13, lineHeight: 20, padding: 12 },
+  badge: { fontSize: 12, textAlign: 'center' },
+  actions: { gap: 10, marginTop: 4 },
+  btn: { height: 56, alignItems: 'center', justifyContent: 'center' },
+  btnText: { fontSize: 17 },
 });
