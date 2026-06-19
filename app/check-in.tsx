@@ -14,9 +14,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useColors } from '@/hooks/useColors';
-import { getAssistantResponse } from '@/src/services/responseService';
-import { useWellness } from '@/src/state/WellnessContext';
-import { CheckInPayload, SCHEMA_VERSION, SupportNeed } from '@/src/types/wellness';
+import { getAssistantResponse } from '../src/services/responseService';
+import { useWellness } from '../src/state/WellnessContext';
+import { CheckInPayload, SCHEMA_VERSION, SupportNeed } from '../src/types/wellness';
 
 // ── Stepper ────────────────────────────────────────────────────────────────
 

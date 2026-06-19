@@ -3,7 +3,7 @@ import React from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { PrimaryButton } from '@/src/components/PrimaryButton';
+import { PrimaryButton } from '../src/components/PrimaryButton';
 import { useColors } from '@/hooks/useColors';
 
 export default function HomeScreen() {

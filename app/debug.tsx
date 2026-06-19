@@ -11,8 +11,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useColors } from '@/hooks/useColors';
-import { config } from '@/src/config/env';
-import { useWellness } from '@/src/state/WellnessContext';
+import { config } from '../src/config/env';
+import { useWellness } from '../src/state/WellnessContext';
 
 interface DebugEntryProps {
   label: string;

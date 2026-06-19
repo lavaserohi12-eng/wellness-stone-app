@@ -11,7 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useColors } from '@/hooks/useColors';
-import { useWellness } from '@/src/state/WellnessContext';
+import { useWellness } from '../src/state/WellnessContext';
 
 export default function ResponseScreen() {
   const router = useRouter();

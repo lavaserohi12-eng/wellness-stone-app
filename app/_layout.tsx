@@ -15,7 +15,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useColors } from '@/hooks/useColors';
-import { WellnessProvider } from '@/src/state/WellnessContext';
+import { WellnessProvider } from '../src/state/WellnessContext';
 
 SplashScreen.preventAutoHideAsync();
 
