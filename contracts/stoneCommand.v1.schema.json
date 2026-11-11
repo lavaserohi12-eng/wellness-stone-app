@@ -1,0 +1,70 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "StoneCommand",
+  "description": "Stone Command v1 — frozen firmware contract for the AI Wellness Stone. Haptic motor + RGB LED only. No warmth_c, no voice (V1 board has no thermal element or speaker). All vocabulary values are fixed — do not add, rename, or invent values without a version bump agreed between app (Lavanya) and firmware (Mani).",
+  "type": "object",
+  "required": ["version", "cmd", "state", "haptic", "light", "duration_s", "intensity"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Contract version. Bumping this is a breaking change — requires agreement from both app and firmware teams."
+    },
+    "cmd": {
+      "type": "string",
+      "enum": ["soothe", "safety_mode", "off"],
+      "description": "soothe = run the haptic+light routine. safety_mode = crisis hold: dim warm glow only, haptic off. off = stone is inactive, all outputs off."
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "ANXIETY",
+        "LONELINESS",
+        "ACADEMIC_STRESS",
+        "LOW_MOOD",
+        "SLEEP_RUMINATION",
+        "BODY_TENSION",
+        "GENERAL_SUPPORT",
+        "CRISIS"
+      ],
+      "description": "Detected emotional state. CODE owns this mapping — the LLM never sets this field."
+    },
+    "haptic": {
+      "type": "string",
+      "enum": [
+        "heartbeat_70bpm",
+        "heartbeat_60bpm",
+        "slow_pulse",
+        "breathing_wave",
+        "long_exhale",
+        "none"
+      ],
+      "description": "Haptic motor pattern. 'none' = motor off. Ignored by firmware when cmd = safety_mode or off."
+    },
+    "light": {
+      "type": "string",
+      "enum": [
+        "amber_breathe_4_6",
+        "amber_steady",
+        "blue_breathe_4_6",
+        "green_steady",
+        "dim_warm_glow",
+        "none"
+      ],
+      "description": "RGB LED pattern. 'none' = LED off. dim_warm_glow is used for safety_mode (always on, soft)."
+    },
+    "duration_s": {
+      "type": "integer",
+      "minimum": 10,
+      "maximum": 180,
+      "description": "Routine duration in seconds. Only meaningful when cmd = soothe. Set to 0 and ignored by firmware for safety_mode and off."
+    },
+    "intensity": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Unified intensity for both haptic motor and LED brightness (0.0 = off, 1.0 = max). Must be 0 when cmd != soothe — enforced by validateStoneCommand()."
+    }
+  }
+}
