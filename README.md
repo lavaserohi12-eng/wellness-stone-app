@@ -53,9 +53,30 @@ node --test scripts/verify-security-dependencies.mjs
 pnpm build
 ```
 
+For isolated live-backend regression tests against the verified development
+project, after secure configuration:
+
+```sh
+RUN_LIVE_SMOKE_TESTS=1 node scripts/verify-live-backend.mjs
+```
+
+This creates fresh anonymous test accounts, performs test writes and removes
+those accounts/data afterward. It does not operate on existing users.
+
 The web export is written to `artifacts/ai-wellness-stone/web-dist`; the API builds
 to `artifacts/api-server/dist`. Native BLE still uses the prototype's mock/stub
 transports. It is not a working physical-device integration.
+
+To run the built web app and API as **one service**:
+
+```sh
+pnpm build
+pnpm start
+```
+
+Open port 5000 (or your configured `PORT`). It serves both the app and `/api`,
+including direct screen links. For web hosting, prefer the same origin for the
+app/API; for Expo native, set a reachable HTTPS API base URL ending in `/api`.
 
 ## Deployment is separate
 

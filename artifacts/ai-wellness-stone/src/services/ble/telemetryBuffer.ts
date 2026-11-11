@@ -28,12 +28,15 @@ interface BufferedReading {
   confidence?: number;
   seq: number;
   captured_at: string;
+  source: 'stone_ble' | 'simulator';
 }
 
 let buffer: BufferedReading[] = [];
 let flushTimer: ReturnType<typeof setInterval> | null = null;
 
-export function onTelemetryFrame(frame: TelemetryFrame): void {
+// All current transports are mocks. A future real BLE adapter must pass
+// source='stone_ble' explicitly so generated readings never impersonate hardware.
+export function onTelemetryFrame(frame: TelemetryFrame, source: 'stone_ble' | 'simulator' = 'simulator'): void {
   if (frame.protocol_version !== '2.0') return;   // reject unknown protocol versions
 
   for (const r of frame.readings) {
@@ -48,6 +51,7 @@ export function onTelemetryFrame(frame: TelemetryFrame): void {
       confidence: r.confidence,
       seq: frame.seq,
       captured_at: frame.captured_at,
+      source,
     });
   }
 }
@@ -72,7 +76,8 @@ export async function flushTelemetry(): Promise<void> {
     user_id: user.id,
     device_id: r.device_id,
     session_id: r.session_id,
-    source: 'stone_ble',
+    source: r.source,
+    is_synthetic: r.source === 'simulator',
     measurement_type: r.measurement_type,
     value_numeric: r.value,
     value_json: { unit: r.unit, confidence: r.confidence, seq: r.seq },

@@ -26,6 +26,7 @@ interface WellnessContextValue {
   checkInSaveError: string | null;
   setCheckInSaving: () => void;
   setCheckInSaveResult: (id: string | null, status: 'saved' | 'failed', error?: string) => void;
+  clearCheckIn: () => void;
 }
 
 const WellnessContext = createContext<WellnessContextValue | null>(null);
@@ -39,6 +40,17 @@ export function WellnessProvider({ children }: { children: React.ReactNode }) {
   const [checkInSaveStatus, setCheckInSaveStatus] = useState<SaveStatus>('idle');
   const [savedNightlyEntryId, setSavedNightlyEntryId] = useState<string | null>(null);
   const [checkInSaveError, setCheckInSaveError] = useState<string | null>(null);
+
+  const clearCheckIn = () => {
+    setLatestCheckInPayload(null);
+    setLatestResponseText(null);
+    setLatestStoneCommand(null);
+    setLatestRiskLevel(null);
+    setLatestStoneBlocked(false);
+    setCheckInSaveStatus('idle');
+    setSavedNightlyEntryId(null);
+    setCheckInSaveError(null);
+  };
 
   const setCheckInResult = (
     payload: CheckInPayload,
@@ -78,6 +90,7 @@ export function WellnessProvider({ children }: { children: React.ReactNode }) {
         checkInSaveError,
         setCheckInSaving,
         setCheckInSaveResult,
+        clearCheckIn,
       }}
     >
       {children}

@@ -111,6 +111,7 @@ async function getRecentPhysiologySummary(
     .from("device_telemetry_readings")
     .select("measurement_type, value_numeric, confidence")
     .eq("user_id", userId)
+    .eq("is_synthetic", false)
     .gte("captured_at", since);
 
   if (!data || data.length === 0) return null;
@@ -415,6 +416,8 @@ router.post("/wellness/respond", async (req, res) => {
         .from(personaTable)
         .select("user_id, profile_json, learned_notes")
         .eq("user_id", checkin.user_id)
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle(),
       getRecentPhysiologySummary(checkin.user_id, supabase).catch(() => null),
     ]);
@@ -522,8 +525,10 @@ router.post("/wellness/feedback", async (req, res) => {
     if (note) {
       const { data: p } = await supabase
         .from(personaTable)
-        .select("user_id, learned_notes")
+        .select("id, user_id, learned_notes")
         .eq("user_id", checkin.user_id)
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
       const existingNotes: string[] = Array.isArray(
         (p as { learned_notes?: unknown } | null)?.learned_notes,
@@ -532,10 +537,11 @@ router.post("/wellness/feedback", async (req, res) => {
         : [];
       const updatedNotes = [...existingNotes, note].slice(-MAX_LEARNED_NOTES);
 
-      const { error: personaUpdateError } = await supabase
+      const { error: personaUpdateError } = p ? await supabase
         .from(personaTable)
         .update({ learned_notes: updatedNotes })
-        .eq("user_id", checkin.user_id);
+        .eq("user_id", checkin.user_id)
+        .eq("id", p.id) : { error: null };
 
       if (personaUpdateError) {
         req.log.error(

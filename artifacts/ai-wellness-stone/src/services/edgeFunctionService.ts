@@ -5,6 +5,7 @@
 
 import { config } from '../config/env';
 import { WellnessResponse } from '../types/wellness';
+import { ensureSession } from './supabaseClient';
 
 export async function fetchWellnessResponse(checkinId: string): Promise<WellnessResponse> {
   const url = `${config.supabaseUrl}/functions/v1/process-checkin-v0`;
@@ -13,7 +14,8 @@ export async function fetchWellnessResponse(checkinId: string): Promise<Wellness
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${config.supabaseAnonKey}`,
+      apikey: config.supabaseAnonKey,
+      Authorization: `Bearer ${(await ensureSession()).access_token}`,
     },
     body: JSON.stringify({ checkin_id: checkinId, synthetic: false }),
   });

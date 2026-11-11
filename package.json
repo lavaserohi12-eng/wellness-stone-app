@@ -8,6 +8,7 @@
     "dev:mobile": "pnpm --filter @workspace/ai-wellness-stone start",
     "dev:web": "pnpm --filter @workspace/ai-wellness-stone web",
     "dev:api": "pnpm --filter @workspace/api-server dev",
+    "start": "pnpm --filter @workspace/api-server start",
     "test": "node --import tsx --test tests/*.test.ts",
     "build": "pnpm run typecheck && pnpm --filter @workspace/api-server build && pnpm --filter @workspace/ai-wellness-stone build",
     "typecheck:libs": "tsc --build",

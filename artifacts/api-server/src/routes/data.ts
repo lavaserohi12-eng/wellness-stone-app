@@ -46,13 +46,19 @@ router.get("/data/export", async (req: Request, res: Response) => {
   try {
     const sb = getSupabase();
 
-    const [entries, persona, telemetry, consents, safetyEvents] = await Promise.all([
+    const [entries, persona, telemetry, consents, safetyEvents, appEvents, deletionEvents] = await Promise.all([
       sb.from("nightly_entries").select("*").eq("user_id", userId),
       sb.from("persona_profiles").select("*").eq("user_id", userId),
       sb.from("device_telemetry_readings").select("*").eq("user_id", userId),
       sb.from("consents").select("*").eq("user_id", userId),
       sb.from("safety_events").select("*").eq("user_id", userId),
+      sb.from("app_events").select("*").eq("user_id", userId),
+      sb.from("deletion_events").select("*").eq("user_id", userId),
     ]);
+
+    for (const result of [entries, persona, telemetry, consents, safetyEvents, appEvents, deletionEvents]) {
+      if (result.error) throw new Error("A data export query failed; please retry");
+    }
 
     res.json({
       exported_at: new Date().toISOString(),
@@ -62,6 +68,8 @@ router.get("/data/export", async (req: Request, res: Response) => {
       device_telemetry_readings: telemetry.data ?? [],
       consents:                  consents.data ?? [],
       safety_events:             safetyEvents.data ?? [],
+      app_events:                appEvents.data ?? [],
+      deletion_events:           deletionEvents.data ?? [],
     });
   } catch (err) {
     req.log.error({ userId, err }, "data/export failed");
@@ -81,11 +89,18 @@ router.post("/data/delete", async (req: Request, res: Response) => {
 
   try {
     const sb = getSupabase();
+    const { data: audit, error: auditError } = await sb
+      .from("deletion_events")
+      .insert({ user_id: userId })
+      .select("id")
+      .single();
+    if (auditError) throw new Error("Could not record the deletion request; please retry");
 
     // Delete in dependency-safe order (safety_events / consents first,
     // then entries, then persona). Telemetry has no FK constraints.
     const tables = [
       "safety_events",
+      "app_events",
       "consents",
       "device_telemetry_readings",
       "nightly_entries",
@@ -102,6 +117,11 @@ router.post("/data/delete", async (req: Request, res: Response) => {
       deleted[table] = count ?? 0;
     }
 
+    const { error: completionError } = await sb
+      .from("deletion_events")
+      .update({ completed_at: new Date().toISOString(), row_counts: deleted })
+      .eq("id", audit.id);
+    if (completionError) req.log.error({ err: completionError }, "Deletion audit completion failed");
     res.json({ deleted });
   } catch (err) {
     req.log.error({ userId, err }, "data/delete failed");

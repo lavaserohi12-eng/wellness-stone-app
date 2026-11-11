@@ -61,6 +61,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",
     "expo-clipboard": "~8.0.8",
+    "expo-crypto": "~15.0.9",
     "expo-notifications": "~0.32.17",
     "react-native-url-polyfill": "^3.0.0"
   }

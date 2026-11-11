@@ -41,6 +41,8 @@ function fixture(options: { invalid?: boolean; foreign?: boolean; crisis?: boole
         update() { call.operation = "update"; return builder; },
         eq(key: string, value: unknown) { call.filters[key] = value; return builder; },
         gte() { return builder; },
+        order() { return builder; },
+        limit() { return builder; },
         single: async () => ({
           data: call.filters.user_id === row.user_id ? row : null,
           error: null,

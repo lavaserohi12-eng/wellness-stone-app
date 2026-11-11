@@ -16,10 +16,11 @@ import {
   syncReminder,
 } from '../src/services/notificationService';
 import { fetchLatestPersonaProfile } from '../src/services/personaService';
-import { getCurrentUserId } from '../src/services/supabaseClient';
+import { usePersona } from '../src/state/PersonaContext';
+import { useWellness } from '../src/state/WellnessContext';
 
-// SAI-11 — "Export my data" / "Delete my data". Both call the data-controls
-// Edge Function, which resolves the caller's OWN user id from their session
+// "Export my data" / "Delete my data" call the authenticated Express API,
+// which resolves the caller's OWN user id from their session
 // token — this screen never sends a user_id itself.
 
 type Status = 'idle' | 'working' | 'done' | 'failed';
@@ -30,6 +31,9 @@ export default function SettingsScreen() {
   const [exportStatus, setExportStatus] = useState<Status>('idle');
   const [deleteStatus, setDeleteStatus] = useState<Status>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const { clearPersona } = usePersona();
+  const { clearCheckIn } = useWellness();
 
   // Reminders default OFF and require an explicit opt-in + OS permission
   // grant, per the app's permission-request convention.
@@ -87,16 +91,21 @@ export default function SettingsScreen() {
       const data = await exportMyData();
       const json = JSON.stringify(data, null, 2);
       if (Platform.OS === 'web') {
-        console.log('[settings] exported data:', json);
+        const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'stone-data-export.json';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
       } else {
         await Clipboard.setStringAsync(json);
       }
       setExportStatus('done');
-      Alert.alert(
+      if (Platform.OS !== 'web') Alert.alert(
         'Export ready',
-        Platform.OS === 'web'
-          ? 'Your data was logged to the console.'
-          : 'Your data was copied to the clipboard as JSON.',
+        'Your data was copied to the clipboard as JSON.',
       );
     } catch (err) {
       setExportStatus('failed');
@@ -104,24 +113,20 @@ export default function SettingsScreen() {
     }
   };
 
-  const confirmDelete = () => {
-    Alert.alert(
-      'Delete all my data?',
-      'This permanently removes your check-ins, wellness profile, telemetry readings, and consent history. This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: handleDelete },
-      ],
-    );
-  };
+  const confirmDelete = () => setShowDeleteConfirmation(true);
 
   const handleDelete = async () => {
     setError(null);
     setDeleteStatus('working');
     try {
       await deleteMyData();
+      clearPersona();
+      clearCheckIn();
+      await setReminderEnabled(false);
+      setRemindersOn(false);
+      setShowDeleteConfirmation(false);
       setDeleteStatus('done');
-      Alert.alert('Deleted', 'Your data has been deleted.', [
+      if (Platform.OS !== 'web') Alert.alert('Deleted', 'Your data has been deleted.', [
         { text: 'OK', onPress: () => router.replace('/') },
       ]);
     } catch (err) {
@@ -159,8 +164,8 @@ export default function SettingsScreen() {
 
       <SectionCard title="Export my data">
         <AppText variant="body">
-          Get a copy of everything stored under your account (check-ins, wellness profile, safety
-          events, device telemetry, and consent history).
+          Get a copy of your check-ins, wellness profile, safety events, device
+          telemetry, consent history, app events and deletion audit records.
         </AppText>
         <AppButton
           title="Export my data"
@@ -168,11 +173,18 @@ export default function SettingsScreen() {
           loading={exportStatus === 'working'}
           testID="btn-export-data"
         />
+        {exportStatus === 'done' && (
+          <AppText variant="body">
+            {Platform.OS === 'web' ? 'Your data export has been downloaded.' : 'Your data was copied to the clipboard.'}
+          </AppText>
+        )}
       </SectionCard>
 
       <SectionCard title="Delete my data">
         <AppText variant="body">
-          Permanently deletes everything stored under your account. This cannot be undone.
+          Permanently deletes your check-ins, profile, telemetry, safety events,
+          app events and consent history. A minimal deletion audit record is
+          retained and included in exports. This cannot be undone.
         </AppText>
         <AppButton
           title="Delete my data"
@@ -181,6 +193,23 @@ export default function SettingsScreen() {
           variant="secondary"
           testID="btn-delete-data"
         />
+        {showDeleteConfirmation && (
+          <View style={{ gap: 12 }}>
+            <AppText variant="body">
+              Delete all my data? This permanently removes your check-ins, wellness
+              profile, telemetry, safety events, app events and consent history.
+              A minimal deletion audit record is retained. This cannot be undone.
+            </AppText>
+            <AppButton
+              title="Delete permanently"
+              onPress={handleDelete}
+              loading={deleteStatus === 'working'}
+              testID="btn-confirm-delete"
+            />
+            <AppButton title="Cancel" onPress={() => setShowDeleteConfirmation(false)} variant="secondary" />
+          </View>
+        )}
+        {deleteStatus === 'done' && <AppText variant="body">Your data has been deleted.</AppText>}
       </SectionCard>
 
       {error && (

@@ -39,7 +39,36 @@ a future optimization, not part of the port.
 The check-in Edge Function verifies caller identity and row ownership. Its
 synthetic/dry-run controls require server authorization. Deploy this revised
 function before validating the new API flow; otherwise the deployment still
-runs the old implementation. No function has been redeployed by this port.
+runs the old implementation.
+
+## Verified development recovery
+
+With the owner's approval, the existing development project was resumed from
+its inactive state. No replacement project or paid plan was created.
+The inspected schema contained the core tables, feedback/learned notes and consent
+fields, and anonymous sign-in was already enabled.
+
+Inspection also found unconditional legacy `anon select`/`anon insert` policies
+on check-ins and personas, which were ORed with owner policies and defeated
+isolation. Migration `0008` was applied to remove only those legacy policies,
+retain the owner policies, and add the missing telemetry confidence/vocabulary
+support. No existing rows were deleted or reassigned.
+
+The secured `process-checkin-v0` function was deployed as version 11 after saving
+a local backup of its previous body. The mobile caller now forwards its own
+session JWT rather than using a project API key as identity.
+
+An isolated live test created fresh anonymous identities and verified:
+authentication; consent/profile/check-in storage; cross-user read/insert denial;
+function ownership checks; connected API response/feedback; the crisis
+short-circuit; marked simulator telemetry; export; and deletion of test data.
+The test cleaned up its own identities and records, not pre-existing users.
+Run it only with explicit opt-in using `scripts/verify-live-backend.mjs`.
+
+These checks do not establish personalized model success: this sandbox currently
+has no model credential. Guided fallbacks work, but personalized AI still needs
+server-side model configuration. Native/device testing and production rollout
+remain separate.
 
 ## Database and release gates
 
@@ -51,13 +80,16 @@ runs the old implementation. No function has been redeployed by this port.
 - Historical `0003` disables telemetry RLS and `0006` re-enables it. Never stop
   at the intermediate unprotected state or blindly replay history on production.
 - Compare current telemetry writes and model queries with the actual schema.
-  The code expects fields/vocabulary such as `confidence` and `hr_bpm` that the
-  checked-in original telemetry migration does not establish. Reconcile against
-  verified live schema before enabling the simulator/live-session pipeline.
+  Original migration `0002` does not establish newer fields such as `confidence`
+  and `hr_bpm`. The verified development fix is in `0008`; do not assume another
+  environment has received it.
 - Check policies for user-owned entries, personas, telemetry and consent;
   safety/deletion audit writes must remain server-only.
 - Verify migrations for feedback/learned notes and consent/data rights.
-- Deploy and verify `process-checkin-v0` and `data-controls` separately.
+- Deploy and verify `process-checkin-v0` separately. The app currently uses the
+  authenticated Express `/data/export` and `/data/delete` routes for privacy
+  controls; the alternative `data-controls` function source is not required
+  for that path and has not been deployed by this recovery.
 - Exercise anonymous sessions, persona save/load, consent, check-in persistence,
   crisis short-circuit, feedback, export and confirmed delete in an isolated
   staging project/account. Local in-memory tests do not prove any of those live

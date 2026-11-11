@@ -9,7 +9,8 @@ async function callDataApi(
   path: '/data/export' | '/data/delete',
 ): Promise<unknown> {
   const session = await ensureSession();
-  const url = `${config.apiBaseUrl}${path}`;
+  if (!config.apiBaseUrl) throw new Error('The app API is not configured');
+  const url = `${config.apiBaseUrl.replace(/\/+$/, '')}${path}`;
 
   const res = await fetch(url, {
     method,

@@ -168,6 +168,7 @@ async function getRecentPhysiologySummary(userId: string): Promise<PhysiologySum
     .from("device_telemetry_readings")
     .select("measurement_type,value_numeric,confidence")
     .eq("user_id", userId)
+    .eq("is_synthetic", false)
     .gte("captured_at", since);
 
   if (!data || data.length === 0) return null;

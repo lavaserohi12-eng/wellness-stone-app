@@ -18,6 +18,7 @@
 
 import { TelemetryFrame } from '../../types/stoneTelemetry';
 import { StoneCommand, validateStoneCommand } from '../../types/stoneCommand';
+import { randomUUID } from 'expo-crypto';
 
 export type TelemetryCallback = (frame: TelemetryFrame) => void;
 
@@ -74,7 +75,7 @@ export class MockStoneTransport implements StoneDeviceTransport {
   private timer: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
-    this.sessionId = `mock-session-${Date.now()}`;
+    this.sessionId = randomUUID();
   }
 
   async connect(): Promise<void> {
